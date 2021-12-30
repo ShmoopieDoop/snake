@@ -32,7 +32,7 @@ class Directions(Enum):
 class Cell:
     def __init__(self, coords: tuple[int, int], grid, isDark: bool):
         self.coords = coords
-        self.isDark = isDark
+        self.isDark = isDark  # for checkerboard background pattern
         self.rect = pygame.Rect(
             coords[0] / grid.width * WIN_SIZE[0],
             coords[1] / grid.height * WIN_SIZE[1],
@@ -56,7 +56,7 @@ class Body(Cell):
         self, coords: tuple[int, int], grid, isDark: bool, isHead: bool, direction: int
     ):
         super().__init__(coords, grid, isDark)
-        self.isHead = isHead
+        self.isHead = isHead  # TODO: no reason for this to exist
         self.surface: pygame.Surface = SNAKE_STRAIGHT
         self.direction = direction
 
@@ -68,15 +68,20 @@ class Apple(Cell):
 
 class Grid(list):
     def __init__(self, size: int):
+        """
+        The grid is a dynamic 2 dimensional array.
+        Board will change based on size of the grid.
+        """
+        # TODO: automatically scale images to fit the grid
         self.width = size
         self.height = size
         for i in range(self.height):
             self.append([])
             for j in range(self.width):
-                isDark = (j % 2 + i % 2) % 2 == 0
+                isDark = (j % 2 + i % 2) % 2 == 0  # checkerboard pattern
                 self[-1].append(Empty((j, i), self, isDark))
 
-    def build_walls(self):
+    def build_walls(self):  # walls are all cells on edge of the 2d array
         for i in range(self.height):
             for j in range(self.width):
                 if i in (0, self.height - 1) or j in (0, self.width - 1):
@@ -92,8 +97,9 @@ class Grid(list):
 
     def spawn_apple(self):
         apple_coords = random.choice(self.find_empty_cells())
+        apple_cell = self[apple_coords[1]][apple_coords[0]]
         self[apple_coords[1]][apple_coords[0]] = Apple(
-            apple_coords, self, self[apple_coords[1]][apple_coords[0]].isDark
+            apple_coords, self, apple_cell.isDark
         )
 
     def draw(self):
@@ -128,7 +134,7 @@ class Snake:
         if start_pos[0] < start_len + 1:
             print("Too close to wall")
             quit()
-        for i in range(start_pos[0] - start_len, start_pos[0]):
+        for i in range(start_pos[0] - start_len, start_pos[0]):  # spawn snake
             coords = (i, start_pos[1])
             part = Body(
                 coords,
@@ -141,7 +147,7 @@ class Snake:
             self.body_parts.append(part)
         self.head = self.grid[start_pos[1]][start_pos[0]]
 
-    def die(self):
+    def die(self):  # if the program reaches this you suck
         global run
         print("Die!")
         print(f"You scored {score} points")
@@ -154,11 +160,16 @@ class Snake:
         self.body_parts[-2].surface = SNAKE_STRAIGHT
 
     def angle_turn(self):
+        """
+        Rotates snakeTurn.png according to the direction of the snake.
+        If the snake turned left rotate clockwise to account for that.
+        """
         turned_part = self.body_parts[-2]
         og_angle = self.angles[self.body_parts[-3].direction]
         new_angle = self.angles[self.body_parts[-1].direction]
         angle = og_angle
         if (new_angle - og_angle + 360) % 360 == 90:
+            # (... + 360) % 360 to account for one case where the turn angle is -270 instead of 90
             angle -= 90
         turn = SNAKE_TURN.copy()
         turn = pygame.transform.rotate(turn, angle)
@@ -173,6 +184,7 @@ class Snake:
     def move(self, turned: bool):
         head_coords = self.body_parts[-1].coords
         tail_coords = self.body_parts[0].coords
+        # TODO: very long 'if' stack don't know if possible to shorten
         if self.direction == Directions.UP:
             next_coords = (head_coords[0], head_coords[1] - 1)
         if self.direction == Directions.RIGHT:
@@ -183,18 +195,15 @@ class Snake:
             next_coords = (head_coords[0] - 1, head_coords[1])
         next_cell_type = self.grid[next_coords[1]][next_coords[0]].TYPE
         next = self.grid[next_coords[1]][next_coords[0]]
-        if next_cell_type in (
-            Wall.TYPE,
-            Body.TYPE,
-        ):
-            self.die()
-        else:
+        if next_cell_type in (Wall.TYPE, Body.TYPE):
+            self.die()  # what a loser
+        else:  # create new snake head
             self.head.isHead = False
             self.head = Body(next_coords, self.grid, next.isDark, True, self.direction)
             self.grid[next_coords[1]][next_coords[0]] = self.head
             self.body_parts.append(self.head)
             self.angle_head()
-        if next_cell_type == Empty.TYPE:
+        if next_cell_type == Empty.TYPE:  # remove tail
             self.grid[tail_coords[1]][tail_coords[0]] = Empty(
                 (tail_coords[0], tail_coords[1]),
                 self.grid,
@@ -203,6 +212,8 @@ class Snake:
             self.body_parts.pop(0)
             self.angle_tail()
         else:
+            # gets here if snake ate an apple.
+            # rather than adding a body part just doesn't remove tail
             global score
             score += 1
             self.grid.spawn_apple()
@@ -228,7 +239,7 @@ def main():
     turned = False
     while run:
         grid.draw()
-        if frame == 10:
+        if frame == 10:  # move every 10 frames
             frame = 0
             snake.move(turned)
             can_turn = True
