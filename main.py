@@ -18,8 +18,9 @@ class Directions(Enum):
 
 
 class Cell:
-    def __init__(self, coords: tuple[int, int], grid):
+    def __init__(self, coords: tuple[int, int], grid, isDark: bool):
         self.coords = coords
+        self.isDark = isDark
         self.rect = pygame.Rect(
             coords[0] / grid.width * WIN_SIZE[0] + 1,
             coords[1] / grid.height * WIN_SIZE[1] + 1,
@@ -49,13 +50,16 @@ class Grid(list):
         self.width = size
         self.height = size
         for i in range(self.height):
-            self.append([Empty((j, i), self) for j in range(self.width)])
+            self.append([])
+            for j in range(self.width):
+                isDark = (j % 2 + i % 2) % 2 == 0
+                self[-1].append(Empty((j, i), self, isDark))
 
     def build_walls(self):
         for i in range(self.height):
             for j in range(self.width):
                 if i in (0, self.height - 1) or j in (0, self.width - 1):
-                    self[i][j] = Wall((j, i), self)
+                    self[i][j] = Wall((j, i), self, self[i][j].isDark)
 
     def find_empty_cells(self):
         empty_cells = []
@@ -67,29 +71,31 @@ class Grid(list):
 
     def spawn_apple(self):
         apple_coords = random.choice(self.find_empty_cells())
-        self[apple_coords[1]][apple_coords[0]] = Apple(apple_coords, self)
+        self[apple_coords[1]][apple_coords[0]] = Apple(
+            apple_coords, self, self[apple_coords[1]][apple_coords[0]].isDark
+        )
 
     def draw(self):
-        for i in range(self.width):
-            pygame.draw.line(
-                WIN,
-                "grey",
-                (((i + 1) / self.width) * WIN_SIZE[0], 0),
-                (((i + 1) / self.width) * WIN_SIZE[0], WIN_SIZE[1]),
-            )
-        for i in range(self.height):
-            pygame.draw.line(
-                WIN,
-                "grey",
-                (0, ((i + 1) / self.width) * WIN_SIZE[1]),
-                (WIN_SIZE[0], (((i + 1) / self.width) * WIN_SIZE[1])),
-            )
+        # for i in range(self.width):
+        #     pygame.draw.line(
+        #         WIN,
+        #         "grey",
+        #         (((i + 1) / self.width) * WIN_SIZE[0], 0),
+        #         (((i + 1) / self.width) * WIN_SIZE[0], WIN_SIZE[1]),
+        #     )
+        # for i in range(self.height):
+        #     pygame.draw.line(
+        #         WIN,
+        #         "grey",
+        #         (0, ((i + 1) / self.width) * WIN_SIZE[1]),
+        #         (WIN_SIZE[0], (((i + 1) / self.width) * WIN_SIZE[1])),
+        #     )
         for row in self:
             for cell in row:
                 if cell.TYPE == Empty.TYPE:
-                    color = "black"
+                    color = "grey" if cell.isDark else "lightGrey"
                 elif cell.TYPE == Wall.TYPE:
-                    color = "grey"
+                    color = (125, 125, 125)
                 elif cell.TYPE == Body.TYPE:
                     color = "green"
                 elif cell.TYPE == Apple.TYPE:
@@ -113,7 +119,7 @@ class Snake:
             quit()
         for i in range(start_pos[0] - start_len, start_pos[0]):
             coords = (i, start_pos[1])
-            part = Body(coords, grid)
+            part = Body(coords, grid, grid[coords[1]][coords[0]].isDark)
             grid[coords[1]][coords[0]] = part
             self.body_parts.append(part)
 
@@ -141,12 +147,14 @@ class Snake:
         ):
             self.die()
         else:
-            new_head = Body(next_coords, self.grid)
+            new_head = Body(next_coords, self.grid, self.grid[next_coords[1]][next_coords[0]].isDark)
             self.grid[next_coords[1]][next_coords[0]] = new_head
             self.body_parts.append(new_head)
         if next_cell_type == Empty.TYPE:
             self.grid[tail_coords[1]][tail_coords[0]] = Empty(
-                (tail_coords[0], tail_coords[1]), self.grid
+                (tail_coords[0], tail_coords[1]),
+                self.grid,
+                self.grid[tail_coords[1]][tail_coords[0]].isDark,
             )
             self.body_parts.pop(0)
         else:
