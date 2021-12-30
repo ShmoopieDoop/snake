@@ -19,6 +19,7 @@ SNAKE_STRAIGHT: pygame.Surface = pygame.image.load(
 )
 SNAKE_TAIL: pygame.Surface = pygame.image.load(os.path.join("Assets", "snakeTail.png"))
 SNAKE_TURN: pygame.Surface = pygame.image.load(os.path.join("Assets", "snakeTurn.png"))
+APPLE: pygame.Surface = pygame.image.load(os.path.join("Assets", "apple.png"))
 
 
 class Directions(Enum):
@@ -51,14 +52,18 @@ class Wall(Cell):
 class Body(Cell):
     TYPE = 2
 
-    def __init__(self, coords: tuple[int, int], grid, isDark: bool, isHead: bool):
+    def __init__(
+        self, coords: tuple[int, int], grid, isDark: bool, isHead: bool, direction: int
+    ):
         super().__init__(coords, grid, isDark)
         self.isHead = isHead
         self.surface: pygame.Surface = SNAKE_STRAIGHT
+        self.direction = direction
 
 
 class Apple(Cell):
     TYPE = 3
+    surface: pygame.Surface = APPLE
 
 
 class Grid(list):
@@ -108,23 +113,26 @@ class Grid(list):
             )
         for row in self:
             for cell in row:
-                if cell.TYPE == Empty.TYPE:
-                    color = "grey" if cell.isDark else "lightGrey"
-                elif cell.TYPE == Wall.TYPE:
+                color = "grey" if cell.isDark else "lightGrey"
+                if cell.TYPE == Wall.TYPE:
                     color = (125, 125, 125)
-                elif cell.TYPE == Body.TYPE:
-                    WIN.blit(cell.surface, cell.rect)
-                    continue
-                elif cell.TYPE == Apple.TYPE:
-                    color = "red"
                 pygame.draw.rect(
                     WIN,
                     color,
                     cell.rect,
                 )
+                if cell.TYPE in (Body.TYPE, Apple.TYPE):
+                    WIN.blit(cell.surface, cell.rect)
 
 
 class Snake:
+    angles = {
+        Directions.UP: 0,
+        Directions.LEFT: 90,
+        Directions.DOWN: 180,
+        Directions.RIGHT: 270,
+    }
+
     def __init__(self, start_pos: tuple[int, int], start_len: int, grid: Grid):
         self.start_pos = start_pos
         self.len = start_len
@@ -137,7 +145,11 @@ class Snake:
         for i in range(start_pos[0] - start_len, start_pos[0]):
             coords = (i, start_pos[1])
             part = Body(
-                coords, grid, grid[coords[1]][coords[0]].isDark, not (i - start_pos[0])
+                coords,
+                grid,
+                grid[coords[1]][coords[0]].isDark,
+                not (i - start_pos[0]),
+                Directions.RIGHT,
             )
             grid[coords[1]][coords[0]] = part
             self.body_parts.append(part)
@@ -150,19 +162,29 @@ class Snake:
         run = False
 
     def angle_head(self):
-        angles = {
-            Directions.UP: 0,
-            Directions.LEFT: 90,
-            Directions.DOWN: 180,
-            Directions.RIGHT: 270,
-        }
         head = SNAKE_HEAD.copy()
-        head = pygame.transform.rotate(head, angles[self.direction])
+        head = pygame.transform.rotate(head, self.angles[self.direction])
         self.body_parts[-1].surface = head
         self.body_parts[-2].surface = SNAKE_STRAIGHT
 
     def angle_turn(self):
-        pass
+        turned_part = self.body_parts[-2]
+        og_angle = self.angles[self.body_parts[-3].direction]
+        new_angle = self.angles[self.body_parts[-1].direction]
+        angle = og_angle
+        if new_angle - og_angle == 90:
+            angle -= 90
+        if og_angle == 270 and new_angle == 0:
+            angle = 180
+        turn = SNAKE_TURN.copy()
+        turn = pygame.transform.rotate(turn, angle)
+        turned_part.surface = turn
+        self.body_parts[-2].direction = self.body_parts[-1].direction
+
+    def angle_tail(self):
+        tail = SNAKE_TAIL.copy()
+        tail = pygame.transform.rotate(tail, self.angles[self.body_parts[0].direction])
+        self.body_parts[0].surface = tail
 
     def move(self, turned: bool):
         head_coords = self.body_parts[-1].coords
@@ -184,7 +206,7 @@ class Snake:
             self.die()
         else:
             self.head.isHead = False
-            self.head = Body(next_coords, self.grid, next.isDark, True)
+            self.head = Body(next_coords, self.grid, next.isDark, True, self.direction)
             self.grid[next_coords[1]][next_coords[0]] = self.head
             self.body_parts.append(self.head)
             self.angle_head()
@@ -195,10 +217,13 @@ class Snake:
                 self.grid[tail_coords[1]][tail_coords[0]].isDark,
             )
             self.body_parts.pop(0)
+            self.angle_tail()
         else:
             global score
             score += 1
             self.grid.spawn_apple()
+        if turned:
+            self.angle_turn()
 
 
 def main():
