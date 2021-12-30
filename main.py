@@ -97,20 +97,6 @@ class Grid(list):
         )
 
     def draw(self):
-        for i in range(self.width):
-            pygame.draw.line(
-                WIN,
-                "grey",
-                (((i + 1) / self.width) * WIN_SIZE[0], 0),
-                (((i + 1) / self.width) * WIN_SIZE[0], WIN_SIZE[1]),
-            )
-        for i in range(self.height):
-            pygame.draw.line(
-                WIN,
-                "grey",
-                (0, ((i + 1) / self.width) * WIN_SIZE[1]),
-                (WIN_SIZE[0], (((i + 1) / self.width) * WIN_SIZE[1])),
-            )
         for row in self:
             for cell in row:
                 color = "grey" if cell.isDark else "lightGrey"
@@ -172,10 +158,8 @@ class Snake:
         og_angle = self.angles[self.body_parts[-3].direction]
         new_angle = self.angles[self.body_parts[-1].direction]
         angle = og_angle
-        if new_angle - og_angle == 90:
+        if (new_angle - og_angle + 360) % 360 == 90:
             angle -= 90
-        if og_angle == 270 and new_angle == 0:
-            angle = 180
         turn = SNAKE_TURN.copy()
         turn = pygame.transform.rotate(turn, angle)
         turned_part.surface = turn
