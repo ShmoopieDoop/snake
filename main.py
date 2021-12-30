@@ -1,13 +1,24 @@
 import pygame
 from enum import Enum
 import random
+import os
 
 from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_UP
 
+pygame.init()
+
 WIN_SIZE = (800, 800)
 WIN = pygame.display.set_mode(WIN_SIZE)
+pygame.display.set_caption("Snake")
 run = True
 score = 3
+
+SNAKE_HEAD: pygame.Surface = pygame.image.load(os.path.join("Assets", "snakeHead.png"))
+SNAKE_STRAIGHT: pygame.Surface = pygame.image.load(
+    os.path.join("Assets", "snakeStraight.png")
+)
+SNAKE_TAIL: pygame.Surface = pygame.image.load(os.path.join("Assets", "snakeTail.png"))
+SNAKE_TURN: pygame.Surface = pygame.image.load(os.path.join("Assets", "snakeTurn.png"))
 
 
 class Directions(Enum):
@@ -22,10 +33,10 @@ class Cell:
         self.coords = coords
         self.isDark = isDark
         self.rect = pygame.Rect(
-            coords[0] / grid.width * WIN_SIZE[0] + 1,
-            coords[1] / grid.height * WIN_SIZE[1] + 1,
-            WIN_SIZE[0] / grid.width - 1,
-            WIN_SIZE[1] / grid.height - 1,
+            coords[0] / grid.width * WIN_SIZE[0],
+            coords[1] / grid.height * WIN_SIZE[1],
+            WIN_SIZE[0] / grid.width,
+            WIN_SIZE[1] / grid.height,
         )
 
 
@@ -39,6 +50,11 @@ class Wall(Cell):
 
 class Body(Cell):
     TYPE = 2
+
+    def __init__(self, coords: tuple[int, int], grid, isDark: bool, isHead: bool):
+        super().__init__(coords, grid, isDark)
+        self.isHead = isHead
+        self.surface: pygame.Surface = SNAKE_STRAIGHT
 
 
 class Apple(Cell):
@@ -76,20 +92,20 @@ class Grid(list):
         )
 
     def draw(self):
-        # for i in range(self.width):
-        #     pygame.draw.line(
-        #         WIN,
-        #         "grey",
-        #         (((i + 1) / self.width) * WIN_SIZE[0], 0),
-        #         (((i + 1) / self.width) * WIN_SIZE[0], WIN_SIZE[1]),
-        #     )
-        # for i in range(self.height):
-        #     pygame.draw.line(
-        #         WIN,
-        #         "grey",
-        #         (0, ((i + 1) / self.width) * WIN_SIZE[1]),
-        #         (WIN_SIZE[0], (((i + 1) / self.width) * WIN_SIZE[1])),
-        #     )
+        for i in range(self.width):
+            pygame.draw.line(
+                WIN,
+                "grey",
+                (((i + 1) / self.width) * WIN_SIZE[0], 0),
+                (((i + 1) / self.width) * WIN_SIZE[0], WIN_SIZE[1]),
+            )
+        for i in range(self.height):
+            pygame.draw.line(
+                WIN,
+                "grey",
+                (0, ((i + 1) / self.width) * WIN_SIZE[1]),
+                (WIN_SIZE[0], (((i + 1) / self.width) * WIN_SIZE[1])),
+            )
         for row in self:
             for cell in row:
                 if cell.TYPE == Empty.TYPE:
@@ -97,7 +113,8 @@ class Grid(list):
                 elif cell.TYPE == Wall.TYPE:
                     color = (125, 125, 125)
                 elif cell.TYPE == Body.TYPE:
-                    color = "green"
+                    WIN.blit(cell.surface, cell.rect)
+                    continue
                 elif cell.TYPE == Apple.TYPE:
                     color = "red"
                 pygame.draw.rect(
@@ -119,9 +136,12 @@ class Snake:
             quit()
         for i in range(start_pos[0] - start_len, start_pos[0]):
             coords = (i, start_pos[1])
-            part = Body(coords, grid, grid[coords[1]][coords[0]].isDark)
+            part = Body(
+                coords, grid, grid[coords[1]][coords[0]].isDark, not (i - start_pos[0])
+            )
             grid[coords[1]][coords[0]] = part
             self.body_parts.append(part)
+        self.head = self.grid[start_pos[1]][start_pos[0]]
 
     def die(self):
         global run
@@ -129,7 +149,22 @@ class Snake:
         print(f"You scored {score} points")
         run = False
 
-    def move(self):
+    def angle_head(self):
+        angles = {
+            Directions.UP: 0,
+            Directions.LEFT: 90,
+            Directions.DOWN: 180,
+            Directions.RIGHT: 270,
+        }
+        head = SNAKE_HEAD.copy()
+        head = pygame.transform.rotate(head, angles[self.direction])
+        self.body_parts[-1].surface = head
+        self.body_parts[-2].surface = SNAKE_STRAIGHT
+
+    def angle_turn(self):
+        pass
+
+    def move(self, turned: bool):
         head_coords = self.body_parts[-1].coords
         tail_coords = self.body_parts[0].coords
         if self.direction == Directions.UP:
@@ -141,15 +176,18 @@ class Snake:
         if self.direction == Directions.LEFT:
             next_coords = (head_coords[0] - 1, head_coords[1])
         next_cell_type = self.grid[next_coords[1]][next_coords[0]].TYPE
+        next = self.grid[next_coords[1]][next_coords[0]]
         if next_cell_type in (
             Wall.TYPE,
             Body.TYPE,
         ):
             self.die()
         else:
-            new_head = Body(next_coords, self.grid, self.grid[next_coords[1]][next_coords[0]].isDark)
-            self.grid[next_coords[1]][next_coords[0]] = new_head
-            self.body_parts.append(new_head)
+            self.head.isHead = False
+            self.head = Body(next_coords, self.grid, next.isDark, True)
+            self.grid[next_coords[1]][next_coords[0]] = self.head
+            self.body_parts.append(self.head)
+            self.angle_head()
         if next_cell_type == Empty.TYPE:
             self.grid[tail_coords[1]][tail_coords[0]] = Empty(
                 (tail_coords[0], tail_coords[1]),
@@ -165,6 +203,12 @@ class Snake:
 
 def main():
     global run
+    opposite_directions = {
+        Directions.UP: Directions.DOWN,
+        Directions.DOWN: Directions.UP,
+        Directions.LEFT: Directions.RIGHT,
+        Directions.RIGHT: Directions.LEFT,
+    }
     grid = Grid(20)
     grid.build_walls()
     grid.spawn_apple()
@@ -172,12 +216,14 @@ def main():
     clock = pygame.time.Clock()
     frame = 0
     can_turn = True
+    turned = False
     while run:
         grid.draw()
         if frame == 10:
             frame = 0
-            snake.move()
+            snake.move(turned)
             can_turn = True
+            turned = False
         frame += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -185,33 +231,25 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if can_turn:
                     if event.key == K_UP:
-                        snake.direction = (
-                            Directions.UP
-                            if snake.direction != Directions.DOWN
-                            else snake.direction
-                        )
-                        can_turn = False
+                        if snake.direction != opposite_directions[Directions.UP]:
+                            snake.direction = Directions.UP
+                            can_turn = False
+                            turned = True
                     if event.key == K_RIGHT:
-                        snake.direction = (
-                            Directions.RIGHT
-                            if snake.direction != Directions.LEFT
-                            else snake.direction
-                        )
-                        can_turn = False
+                        if snake.direction != opposite_directions[Directions.RIGHT]:
+                            snake.direction = Directions.RIGHT
+                            can_turn = False
+                            turned = True
                     if event.key == K_DOWN:
-                        snake.direction = (
-                            Directions.DOWN
-                            if snake.direction != Directions.UP
-                            else snake.direction
-                        )
-                        can_turn = False
+                        if snake.direction != opposite_directions[Directions.DOWN]:
+                            snake.direction = Directions.DOWN
+                            can_turn = False
+                            turned = True
                     if event.key == K_LEFT:
-                        snake.direction = (
-                            Directions.LEFT
-                            if snake.direction != Directions.RIGHT
-                            else snake.direction
-                        )
-                        can_turn = False
+                        if snake.direction != opposite_directions[Directions.LEFT]:
+                            snake.direction = Directions.LEFT
+                            can_turn = False
+                            turned = True
         clock.tick(60)
         pygame.display.update()
 
