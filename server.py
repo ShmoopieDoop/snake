@@ -29,6 +29,7 @@ def handle_client(conn, addr):
 
 
 def start():
+    print("[STARTING] server is starting")
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}")
     while True:
@@ -37,6 +38,3 @@ def start():
         thread.start()
         print(f"[ACTIVE CONNCTIONS] {threading.active_count() - 1}")
 
-
-print("[STARTING] server is starting")
-start()
