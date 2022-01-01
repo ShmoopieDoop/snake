@@ -3,7 +3,7 @@ from enum import Enum
 import random
 import os
 
-from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_UP
+from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP
 
 pygame.init()
 
@@ -221,13 +221,23 @@ class Snake:
             self.angle_turn()
 
 
-def main():
-    global run
+def is_opposite_direction(new_direction, old_direction):
     opposite_directions = {
         Directions.UP: Directions.DOWN,
         Directions.DOWN: Directions.UP,
         Directions.LEFT: Directions.RIGHT,
         Directions.RIGHT: Directions.LEFT,
+    }
+    return old_direction == opposite_directions[new_direction]
+
+
+def main():
+    global run
+    key_to_direction = {
+        K_UP: Directions.UP,
+        K_DOWN: Directions.DOWN,
+        K_RIGHT: Directions.RIGHT,
+        K_LEFT: Directions.LEFT,
     }
     grid = Grid(20)
     grid.build_walls()
@@ -236,40 +246,34 @@ def main():
     clock = pygame.time.Clock()
     frame = 0
     can_turn = True
-    turned = False
+    play = True
     while run:
-        grid.draw()
-        if frame == 10:  # move every 10 frames
-            frame = 0
-            snake.move(turned)
-            can_turn = True
-            turned = False
-        frame += 1
+        if play:
+            grid.draw()
+            if frame == 10:  # move every 10 frames
+                frame = 0
+                snake.move(not can_turn)
+                can_turn = True
+            frame += 1
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
             if event.type == pygame.KEYDOWN:
+                if event.key == K_SPACE:
+                    play = not play
                 if can_turn:
-                    if event.key == K_UP:
-                        if snake.direction != opposite_directions[Directions.UP]:
+                    if event.key in key_to_direction and not is_opposite_direction(
+                        key_to_direction[event.key], snake.direction
+                    ):
+                        if event.key == K_UP:
                             snake.direction = Directions.UP
-                            can_turn = False
-                            turned = True
-                    if event.key == K_RIGHT:
-                        if snake.direction != opposite_directions[Directions.RIGHT]:
+                        if event.key == K_RIGHT:
                             snake.direction = Directions.RIGHT
-                            can_turn = False
-                            turned = True
-                    if event.key == K_DOWN:
-                        if snake.direction != opposite_directions[Directions.DOWN]:
+                        if event.key == K_DOWN:
                             snake.direction = Directions.DOWN
-                            can_turn = False
-                            turned = True
-                    if event.key == K_LEFT:
-                        if snake.direction != opposite_directions[Directions.LEFT]:
+                        if event.key == K_LEFT:
                             snake.direction = Directions.LEFT
-                            can_turn = False
-                            turned = True
+                        can_turn = False
         clock.tick(60)
         pygame.display.update()
 
