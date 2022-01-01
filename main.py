@@ -2,8 +2,9 @@ import pygame
 from enum import Enum
 import random
 import os
+import server
 
-from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP
+from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP, K_s
 
 pygame.init()
 
@@ -261,6 +262,8 @@ def main():
             if event.type == pygame.KEYDOWN:
                 if event.key == K_SPACE:
                     play = not play
+                if not play and event.key == K_s:
+                    server.start((grid, snake, score))
                 if can_turn:
                     if event.key in key_to_direction and not is_opposite_direction(
                         key_to_direction[event.key], snake.direction

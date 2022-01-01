@@ -231,7 +231,7 @@ def is_opposite_direction(new_direction, old_direction):
     return old_direction == opposite_directions[new_direction]
 
 
-def main(grid, snake, c_score):
+def main(game):
     global run
     global score
     key_to_direction = {
@@ -240,7 +240,7 @@ def main(grid, snake, c_score):
         K_RIGHT: Directions.RIGHT,
         K_LEFT: Directions.LEFT,
     }
-    score = c_score
+    grid, snake, score = game
     clock = pygame.time.Clock()
     frame = 0
     can_turn = True
