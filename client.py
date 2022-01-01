@@ -23,18 +23,17 @@ def send(msg):
     client.send(send_length)
     client.send(message)
     msg = client.recv(2048)
-    try:
-        msg = msg.decode(FORMAT)
-        print(msg)
-    except UnicodeDecodeError:
-        print("not a string")
     if msg == GAME_MESSAGE:
-        msg = client.recv(2048)
+        msg = client.recv(4096)
         print(msg)
         grid = pickle.loads(msg)
-        snake = pickle.loads(msg)
-        score = pickle.loads(msg)
-        main.main(grid, snake, score)
+        print(grid)
+    else:
+        try:
+            msg = msg.decode(FORMAT)
+            print(msg)
+        except UnicodeDecodeError:
+            print("not a string")
     return msg
 
 
