@@ -7,7 +7,7 @@ PORT = 5050
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!disconnect"
 GAME_MESSAGE = "!sending_game"
-SERVER = "192.168.1.203"
+SERVER = "192.168.1.249"
 ADDR = (SERVER, PORT)
 
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -26,3 +26,5 @@ def send(msg):
         msg = client.recv(2048)
         game = pickle.loads(msg)
         existing_grid.main(game)
+
+send("test")
