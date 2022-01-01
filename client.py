@@ -22,7 +22,11 @@ def send(msg):
     send_length += b" " * (HEADER - len(send_length))
     client.send(send_length)
     client.send(message)
-    msg = client.recv(2048).decode(FORMAT)
+    msg = client.recv(2048)
+    try:
+        msg = msg.decode(FORMAT)
+    except UnicodeDecodeError:
+        print("not a string")
     if msg == GAME_MESSAGE:
         msg = client.recv(2048)
         game = pickle.loads(msg)
