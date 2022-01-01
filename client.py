@@ -1,6 +1,6 @@
 import socket
 import pickle
-import existing_grid
+import main
 
 HEADER = 16
 PORT = 5050
@@ -25,6 +25,7 @@ def send(msg):
     if msg == GAME_MESSAGE:
         msg = client.recv(2048)
         game = pickle.loads(msg)
-        existing_grid.main(game)
+        grid, snake, score = game
+        main.main(grid, snake, score)
 
 send("test")
