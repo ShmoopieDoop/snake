@@ -10,8 +10,6 @@ FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!disconnect"
 GAME_MESSAGE = "!sending_game"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server.bind(ADDR)
 
 
 def handle_client(conn, addr, game):
@@ -33,6 +31,8 @@ def handle_client(conn, addr, game):
 
 
 def start(game):
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(ADDR)
     print("[STARTING] server is starting")
     server.listen()
     print(f"[LISTENING] Server is listening on {SERVER}")
