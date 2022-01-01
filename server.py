@@ -9,6 +9,7 @@ ADDR = (SERVER, PORT)
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!disconnect"
 GAME_MESSAGE = "!sending_game"
+GAME_REQUEST = "!requsting_game"
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 
@@ -24,9 +25,10 @@ def handle_client(conn, addr, game):
                 connected = False
             print(f"[{addr}] {msg}")
             conn.send("msg recieved".encode(FORMAT))
-            conn.send(GAME_MESSAGE.encode(FORMAT))
-            msg = pickle.dumps(game)
-            conn.send(msg)
+            if msg == GAME_REQUEST:
+                conn.send(GAME_MESSAGE.encode(FORMAT))
+                msg = pickle.dumps(game)
+                conn.send(msg)
     conn.close()
 
 

@@ -7,6 +7,7 @@ PORT = 5050
 FORMAT = "utf-8"
 DISCONNECT_MESSAGE = "!disconnect"
 GAME_MESSAGE = "!sending_game"
+GAME_REQUEST = "!requsting_game"
 SERVER = "192.168.1.249"
 ADDR = (SERVER, PORT)
 
@@ -27,5 +28,8 @@ def send(msg):
         game = pickle.loads(msg)
         grid, snake, score = game
         main.main(grid, snake, score)
+    return msg
 
-send("test")
+msg = send(GAME_REQUEST)
+while msg != GAME_MESSAGE:
+    msg = send(GAME_REQUEST)
