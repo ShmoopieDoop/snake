@@ -1,6 +1,7 @@
 import socket
 import threading
 import pickle
+import main
 
 HEADER = 16
 PORT = 5050
@@ -27,8 +28,9 @@ def handle_client(conn, addr, game):
             conn.send("msg recieved".encode(FORMAT))
             if msg == GAME_REQUEST:
                 conn.send(GAME_MESSAGE.encode(FORMAT))
-                msg = pickle.dumps(game)
-                conn.send(msg)
+                for i in game:
+                    msg = pickle.dumps(i)
+                    conn.send(msg)
     conn.close()
 
 

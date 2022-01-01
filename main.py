@@ -6,8 +6,6 @@ import server
 
 from pygame.constants import K_DOWN, K_LEFT, K_RIGHT, K_SPACE, K_UP, K_s
 
-pygame.init()
-
 WIN_SIZE = (800, 800)
 WIN = pygame.display.set_mode(WIN_SIZE)
 pygame.display.set_caption("Snake")
